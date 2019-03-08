@@ -1,0 +1,120 @@
+---
+title: "Machine Learning Final Project"
+author: "Emma Richard"
+date: "March 8, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Background
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+# Data
+
+The training data for this project are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+The data for this project come from this source: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har. If you use the document you create for this class for any purpose please cite them as they have been very generous in allowing their data to be used for this kind of assignment.
+
+## Approach
+
+The outcome variable is classe. Participants were asked to perform Unilateral Dumbbell Biceps Curl 5 ways: 
+Class A:) According to specification
+Class B:) Throwing elbows to the front
+Class C:) Lifting dumbbell halfway
+Class D:) Lowering the dumbell halfway
+Class E:) Throwing hips to the front
+
+In order to assess the data the following approach will be taken:
+1.) Load and analyze the data
+2.) Use cross-validation: 75% training set, 25% test set
+3.) Apply decision tree method to build a model
+4.) Apply random forest method to build a model
+5.) Select the best model for prediction
+6.) Report final outcome
+
+# Load libraries necessary for project
+```{r libraries, echo=FALSE}
+library(caret)
+library(randomForest)
+library(rpart) 
+library(rpart.plot)
+library(lattice) 
+library(ggplot2)
+set.seed(1111)
+
+```
+
+
+# Get and clean data
+```{r data, echo=FALSE}
+train_link <- "http://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+test_link <- "http://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+
+train_data <- read.csv(url(train_link), na.strings=c("NA","#DIV/0!",""))
+test_data <- read.csv(url(test_link), na.strings=c("NA","#DIV/0!",""))
+
+# Delete columns with all missing values
+train_data<-train_data[,colSums(is.na(train_data)) == 0]
+test_data <-test_data[,colSums(is.na(test_data)) == 0]
+
+# Delete irrelevant variables
+train_data   <-train_data[,-c(1:7)]
+test_data <-test_data[,-c(1:7)]
+
+# Training and test sets
+ttset <- createDataPartition(y=train_data$classe, p=0.75, list=FALSE)
+train_tset <- train_data[ttset, ] 
+test_tset <- train_data[-ttset, ]
+
+```
+
+# Prediction Method 1: Decision Tree
+```{r dectree, echo=FALSE}
+
+dectree <- rpart(classe ~ ., data=train_tset, method="class")
+
+dectree_pred <- predict(dectree, test_tset, type = "class")
+
+# plot
+rpart.plot(dectree, main="Decision Tree", extra=102, under=TRUE, faclen=0)
+
+```
+# Prediction Method 1 Results: Decision Tree
+```{r dectree2, echo=FALSE}
+
+
+confusionMatrix(dectree_pred, test_tset$classe)
+
+
+```
+
+#Prediction Method 2: Random Forest
+```{r randforest, echo=FALSE}
+randfor <- randomForest(classe ~. , data=train_tset, method="class")
+
+# Predicting:
+randfor_pred <- predict(randfor, test_tset, type = "class")
+```
+# Prediction Method 2 Results: Random Forest
+```{r randforest2, echo=FALSE}
+confusionMatrix(randfor_pred, test_tset$classe)
+```
+
+# Model selection
+The random forest model performed best. Random forest is used to get the final outcome.
+
+## Final outcome
+```{r final, echo=FALSE}
+prediction <- predict(randfor, test_data, type="class")
+prediction
+```
